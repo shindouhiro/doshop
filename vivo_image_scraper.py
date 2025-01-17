@@ -61,6 +61,7 @@ class VivoImageScraper:
                     time.sleep(2)
                     # 重新获取页面内容
                     search_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+
             else:
                 print("未找到产品标签")
 
@@ -82,6 +83,8 @@ class VivoImageScraper:
                         product_link_element = self.driver.find_element(By.CSS_SELECTOR, '.pro-intro h3 a')
                         product_link_element.click()
                         time.sleep(2)
+                        search_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+                        
                     except Exception as e:
                         print(f"点击产品链接失败: {str(e)}")
                         # 如果点击失败,直接访问URL
@@ -91,90 +94,86 @@ class VivoImageScraper:
                     print("产品链接href属性为空")
             else:
                 print("未找到产品链接")
-            # 查找第一个产品链接
-            product_link = search_doc.select_one('.search-list .pro-intro h3 a')
-            if not product_link:
-                print(f"未找到产品 {product_name} 的搜索结果")
-                return
-            
-            # 获取产品链接并访问
-            print(product_link,"产品url")
-            product_url = product_link.get('href')
-            if not product_url.startswith('http'):
-                product_url = 'https:' + product_url
-            print("访问产品页面: {product_url}")
-            self.driver.get(product_url)
-            time.sleep(2)
-            # 获取产品详情页内容
-            product_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
-            # 打断点
-            
             # 创建产品目录
-            safe_product_name = product_name.replace('/', '_').replace('\\', '_')
-            product_dir = os.path.join(self.output_dir, safe_product_name)
-            os.makedirs(product_dir, exist_ok=True)
-            
-            # 保存整个product_doc到文本文件
-            product_doc_file = os.path.join(product_dir, 'product_doc.txt')
-            with open(product_doc_file, 'w', encoding='utf-8') as f:
-                f.write(str(product_doc))
-            print(f"已保存product_doc到: {product_doc_file}")
-            
-            # 获取产品内容
-            content_items = product_doc.select('.article-content')
-            if content_items:
-                print("找到产品内容:")
-                content_file = os.path.join(product_dir, 'content.txt')
-                with open(content_file, 'w', encoding='utf-8') as f:
-                    for item in content_items:
-                        content = item.get_text(strip=True)
-                        print(content)
-                        f.write(content + '\n')
-                print(f"已保存产品内容到: {content_file}")
+
+            # 获取当前页面内容
+
+            # 查找参数链接
+            param_link = search_doc.select_one('.nav__list a[href*="/param.shtml"]')
+            if param_link:
+                print("找到参数链接")
+                param_url = param_link.get('href')
+                if param_url:
+                    # 确保URL是完整的
+                    if not param_url.startswith('http'):
+                        param_url = 'https://detail.zol.com.cn' + param_url
+                    print(f"参数页面URL: {param_url}")
+                    
+                    # 点击链接访问参数页面
+                    try:
+                        # 使用更精确的选择器定位参数链接
+                        param_link_element = self.driver.find_element(By.CSS_SELECTOR, '.nav__list.clearfix li a[href*="/param.shtml"]')
+                        param_link_element.click()
+                        time.sleep(2)
+                        
+                        # 获取参数页面内容
+                        param_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+                        print("参数页面内容:")
+                        print(param_doc.prettify())
+                    except Exception as e:
+                        print(f"点击参数链接失败: {str(e)}")
+                        # 如果点击失败,直接访问URL
+                        self.driver.get(param_url)
+                        time.sleep(2)
+                        
+                        # 获取参数页面内容
+                        param_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+                        print("参数页面内容:")
+                        print(param_doc.prettify())
+                else:
+                    print("参数链接href属性为空")
             else:
-                print("未找到产品内容")
+                print("未找到参数链接")
+
+            # 创建产品目录
+            product_dir = os.path.join('images', product_name)
+            os.makedirs(product_dir, exist_ok=True)
+            print(f"创建目录: {product_dir}")
             
-            # 获取产品图片
-            print("开始下载产品图片...")
-            images = product_doc.select('.big-pic-box img')
-            for idx, img in enumerate(images):
+            # 查找所有图片元素
+            image_elements = product_doc.select('.big-pic-box img')
+            if not image_elements:
+                print("未找到图片元素")
+                return
+                
+            print(f"找到 {len(image_elements)} 张图片")
+            
+            # 下载每张图片
+            for i, img in enumerate(image_elements, 1):
                 img_url = img.get('src')
                 if not img_url:
+                    print(f"图片 {i} 没有src属性")
                     continue
+                    
+                # 确保URL是完整的
                 if not img_url.startswith('http'):
                     img_url = 'https:' + img_url
                     
-                # 下载图片
+                # 构建保存路径
+                img_name = f"{product_name}_{i}.jpg"
+                img_path = os.path.join(product_dir, img_name)
+                
                 try:
-                    response = requests.get(img_url)
+                    # 下载图片
+                    response = requests.get(img_url, timeout=10)
                     if response.status_code == 200:
-                        img_path = os.path.join(product_dir, f'image_{idx+1}.jpg')
                         with open(img_path, 'wb') as f:
                             f.write(response.content)
-                        print(f"已保存图片: {img_path}")
+                        print(f"已保存图片: {img_name}")
+                    else:
+                        print(f"下载图片 {img_name} 失败: HTTP {response.status_code}")
                 except Exception as e:
-                    print(f"下载图片失败: {img_url}")
-                    print(f"错误信息: {str(e)}")
-            
-            # 获取产品参数
-            print("\n获取产品参数...")
-            params = {}
-            param_items = product_doc.select('.param-list li')
-            for item in param_items:
-                try:
-                    key = item.select_one('.param-name').text.strip()
-                    value = item.select_one('.param-value').text.strip()
-                    params[key] = value
-                except:
-                    continue
-            
-            # 保存参数到文本文件
-            params_file = os.path.join(product_dir, 'parameters.txt')
-            with open(params_file, 'w', encoding='utf-8') as f:
-                for key, value in params.items():
-                    f.write(f"{key}: {value}\n")
-            print(f"已保存参数到: {params_file}")
-            
+                    print(f"下载图片 {img_name} 时出错: {str(e)}")
         except Exception as e:
             print(f"处理产品 {product_name} 时发生错误:")
             print(f"- 错误类型: {type(e).__name__}")
