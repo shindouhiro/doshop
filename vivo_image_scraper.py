@@ -62,6 +62,7 @@ class VivoImageScraper:
                     # 重新获取页面内容
                     search_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
 
+
             else:
                 print("未找到产品标签")
 
@@ -83,8 +84,46 @@ class VivoImageScraper:
                         product_link_element = self.driver.find_element(By.CSS_SELECTOR, '.pro-intro h3 a')
                         product_link_element.click()
                         time.sleep(2)
-                        search_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
-                        
+                        # 获取当前页面内容
+                        product_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+                        print("产品页面内容:")
+                        print(product_doc.prettify())
+                        # 查找参数链接
+                        param_link = search_doc.select_one('.nav__list a[href*="/param.shtml"]')
+                        if param_link:
+                            print("找到参数链接")
+                            param_url = param_link.get('href')
+                            if param_url:
+                                # 确保URL是完整的
+                                if not param_url.startswith('http'):
+                                    param_url = 'https://detail.zol.com.cn' + param_url
+                                print(f"参数页面URL: {param_url}")
+                                
+                                # 点击链接访问参数页面
+                                try:
+                                    # 使用更精确的选择器定位参数链接
+                                    param_link_element = self.driver.find_element(By.CSS_SELECTOR, '.nav__list.clearfix li a[href*="/param.shtml"]')
+                                    param_link_element.click()
+                                    time.sleep(2)
+                                    
+                                    # 获取参数页面内容
+                                    param_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+                                    print("参数页面内容:")
+                                    print(param_doc.prettify())
+                                except Exception as e:
+                                    print(f"点击参数链接失败: {str(e)}")
+                                    # 如果点击失败,直接访问URL
+                                    self.driver.get(param_url)
+                                    time.sleep(2)
+                                    
+                                    # 获取参数页面内容
+                                    param_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
+                                    print("参数页面内容:")
+                                    print(param_doc.prettify())
+                            else:
+                                print("参数链接href属性为空")
+                        else:
+                            print("未找到参数链接")
                     except Exception as e:
                         print(f"点击产品链接失败: {str(e)}")
                         # 如果点击失败,直接访问URL

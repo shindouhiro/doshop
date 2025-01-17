@@ -1,0 +1,17 @@
+{
+  "name": "shop",
+  "version": "1.0.0",
+  "description": "独立站地址：https://www.qsw6688.com/",
+  "main": "vivo_image_scraper.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "puppeteer": "^24.1.0",
+    "xlsx": "^0.18.5"
+  }
+}

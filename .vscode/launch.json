@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug with Excel file",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/vivo_image_scraper.js",
+            "args": ["products.xlsx"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug with custom args",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/vivo_image_scraper.js",
+            "args": ["${input:excelPath}"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "excelPath",
+            "type": "promptString",
+            "description": "Excel file path",
+            "default": "products.xlsx"
+        }
+    ]
+} 
