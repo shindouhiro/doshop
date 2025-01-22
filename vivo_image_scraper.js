@@ -88,6 +88,7 @@ class VivoImageScraper {
           const contentPath = path.join('content.txt');
           fs.writeFileSync(contentPath, content, 'utf8');
           console.log(`页面内容已保存到: ${contentPath}`);
+
           // 查找并点击参数链接
           const paramLink = await newPage.$('a[href*="/param.shtml"]');
           if (paramLink) {
@@ -104,48 +105,56 @@ class VivoImageScraper {
             const paramContent = await paramPage.content();
             console.log('参数页面内容已获取');
 
-            // 获取参数表格内容
-            const paramTable = await paramPage.$('.detailed-parameters table');
-            if (paramTable) {
-                const tableData = await paramPage.evaluate(table => {
-                    const rows = Array.from(table.querySelectorAll('tr'));
-                    return rows.map(row => {
-                        const cells = Array.from(row.querySelectorAll('th, td'));
-                        return cells.map(cell => cell.textContent.trim()).join('\t');
-                    }).join('\n');
-                }, paramTable);
+            // 获取所有表格内容
+            const tables = await paramPage.$$('table');
+            if (tables.length > 0) {
+                console.log(`找到 ${tables.length} 个表格`);
                 
                 // 获取所有Excel文件
                 const excelFiles = fs.readdirSync('.').filter(file => file.endsWith('.xlsx'));
                 
                 // 为每个Excel文件创建对应的目录并保存参数
                 for (const excelFile of excelFiles) {
-                    // 获取Excel文件名（不含扩展名）
                     const excelFileName = path.basename(excelFile, '.xlsx');
-                    
-                    // 创建Excel文件对应的目录
                     const excelDir = path.join('params', excelFileName);
                     fs.mkdirSync(excelDir, { recursive: true });
                     
-                    // 在Excel目录下创建产品目录
                     const productDir = path.join(excelDir, productName.replace(/[/\\]/g, '_'));
                     fs.mkdirSync(productDir, { recursive: true });
                     
-                    // 保存参数表格内容到对应产品文件夹
-                    const paramContentPath = path.join(productDir, 'params.txt');
-                    fs.writeFileSync(paramContentPath, tableData, 'utf8');
-                    console.log(`参数表格内容已保存到: ${paramContentPath}`);
+                    // 保存每个表格的内容
+                    for (let i = 0; i < tables.length; i++) {
+                        const tableData = await paramPage.evaluate(table => {
+                            // 获取表格的HTML内容
+                            const tableHtml = table.outerHTML;
+                            // 获取表格的文本内容
+                            const rows = Array.from(table.querySelectorAll('tr'));
+                            const textContent = rows.map(row => {
+                                const cells = Array.from(row.querySelectorAll('th, td'));
+                                return cells.map(cell => cell.textContent.trim()).join('\t');
+                            }).join('\n');
+                            return { html: tableHtml, text: textContent };
+                        }, tables[i]);
+                        
+                        // 保存HTML格式
+                        // 将所有表格内容合并到一个文件
+                        const textPath = path.join(productDir, 'table.txt');
+                        // 如果是第一个表格，直接写入，否则追加写入
+                        if (i === 0) {
+                            fs.writeFileSync(textPath, tableData.text, 'utf8');
+                        } else {
+                            fs.appendFileSync(textPath, '\n\n' + tableData.text, 'utf8');
+                        }
+                        console.log(`表格${i + 1}的内容已追加到: ${textPath}`);
+                    }
                 }
             } else {
-                console.log("未找到参数表格");
+                console.log("未找到表格");
             }
             await paramPage.close();
           } else {
             console.log("未找到参数链接");
           }
-
-
-
 
           // 创建产品目录
           const productDir = path.join('images', productName.replace(/[/\\]/g, '_'));
@@ -275,4 +284,4 @@ if (process.argv.length < 3) {
   scraper.scrapeImages().catch(error => {
     console.log("\n程序执行出错:", error);
   });
-} 
+}
