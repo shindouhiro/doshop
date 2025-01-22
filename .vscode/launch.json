@@ -9,7 +9,8 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/vivo_image_scraper.js",
-            "args": ["products.xlsx"]
+            "args": ["products.xlsx"],
+            "runtimeExecutable": "/usr/local/bin/node"  // Add this line
         },
         {
             "type": "node",
@@ -19,7 +20,8 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/vivo_image_scraper.js",
-            "args": ["${input:excelPath}"]
+            "args": ["${input:excelPath}"],
+            "runtimeExecutable": "/usr/local/bin/node"  // Add this line
         }
     ],
     "inputs": [
@@ -30,4 +32,4 @@
             "default": "products.xlsx"
         }
     ]
-} 
+}

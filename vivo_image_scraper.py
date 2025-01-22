@@ -87,6 +87,8 @@ class VivoImageScraper:
                         # 获取当前页面内容
                         product_doc = BeautifulSoup(self.driver.page_source, 'html.parser')
                         print("产品页面内容:")
+                        # 打印断点调试信息
+                    
                         print(product_doc.prettify())
                         # 查找参数链接
                         param_link = search_doc.select_one('.nav__list a[href*="/param.shtml"]')
